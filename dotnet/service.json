@@ -1,0 +1,25 @@
+{
+  "stack": "dotnet",
+  "memory": 256,
+  "runtimeArgs": [],
+  "routes": {
+    "processNotification": {
+      "path": "/treasure-data-notification",
+      "public": true
+    },
+    "buildEvent": {
+      "path": "/treasure-data/build-event/:orderId/:eventType",
+      "public": true
+    }
+  },
+  "events": {
+    "onAppsLinked": {
+      "sender": "apps",
+      "keys": [ "linked" ]
+    },
+    "allStates": {
+      "sender": "vtex.orders-broadcast",
+      "topics": [ "order-status-updated" ]
+    }
+  }
+}
