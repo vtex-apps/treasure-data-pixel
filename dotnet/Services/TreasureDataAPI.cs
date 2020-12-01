@@ -146,6 +146,7 @@ namespace TreasureData.Services
         {
             bool success = false;
             string jsonSerializedEvent = JsonConvert.SerializeObject(treasureDataEventRecord);
+            _context.Vtex.Logger.Info("SendEvent", null, $"{jsonSerializedEvent}");
             Console.WriteLine($"Event = {jsonSerializedEvent}");
             MerchantSettings merchantSettings = await _orderFeedAPI.GetMerchantSettings();
 
@@ -167,12 +168,20 @@ namespace TreasureData.Services
             }
 
             var client = _clientFactory.CreateClient();
-            var response = await client.SendAsync(request);
-            string responseContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"[-] SendEvent Response {response.StatusCode} Content = '{responseContent}' [-]");
-            _context.Vtex.Logger.Info("SendEvent", null, $"[{response.StatusCode}] {responseContent}");
+            // We want to error so that the Event Broasdcast will re-play
+            //try
+            //{
+                var response = await client.SendAsync(request);
+                string responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[-] SendEvent Response {response.StatusCode} Content = '{responseContent}' |{request.RequestUri}| [-]");
+                _context.Vtex.Logger.Info("SendEvent", null, $"[{response.StatusCode}] {responseContent}");
 
-            success = response.IsSuccessStatusCode;
+                success = response.IsSuccessStatusCode;
+            //}
+            //catch(Exception ex)
+            //{
+            //    _context.Vtex.Logger.Error("SendEvent", null, $"Error sending '{jsonSerializedEvent}' tp '{request.RequestUri}'", ex);
+            //}
 
             return success;
         }
@@ -210,7 +219,7 @@ namespace TreasureData.Services
                     LastName = vtexOrder.ClientProfileData.LastName,
                     PhoneNumber = vtexOrder.ClientProfileData.Phone,
                     Region = vtexOrder.ShippingData.Address.Neighborhood,
-                    Value = vtexOrder.Value,
+                    Value = ToDollar(vtexOrder.Value),
                     Zip = vtexOrder.ShippingData.Address.PostalCode,
                 };
 
@@ -220,7 +229,10 @@ namespace TreasureData.Services
                 
                 tdRecordBase = AddToDictionary(tdRecordBase, tdHeader);
                 tdRecordBase = AddToDictionary(tdRecordBase, tdEvent);
-                tdRecordBase = AddToDictionary(tdRecordBase, merchantSettings.CustomFields);
+                if (merchantSettings.CustomFields != null && merchantSettings.CustomFields.Count > 0)
+                {
+                    tdRecordBase = AddToDictionary(tdRecordBase, merchantSettings.CustomFields);
+                }
 
                 foreach (Item item in vtexOrder.Items)
                 {
@@ -285,9 +297,17 @@ namespace TreasureData.Services
 
         public static Dictionary<string, string> AddToDictionary(Dictionary<string, string> addTo, Dictionary<string, string> addFrom)
         {
-            foreach (var kvp in addFrom)
+            if(addTo == null)
             {
-                addTo.Add(kvp.Key, kvp.Value);
+                addTo = new Dictionary<string, string>();
+            }
+
+            if (addFrom != null)
+            {
+                foreach (var kvp in addFrom)
+                {
+                    addTo.Add(kvp.Key, kvp.Value);
+                }
             }
 
             return addTo;

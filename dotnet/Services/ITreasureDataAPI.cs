@@ -8,5 +8,6 @@ namespace TreasureData.Services
     {
         Task<bool> ProcessNotification(AllStatesNotification hookNotification);
         Task<bool> SendEvent(object TreasureDataEvent);
+        Task<bool> BuildAndSendEvent(VtexOrder vtexOrder, string eventType);
     }
 }
