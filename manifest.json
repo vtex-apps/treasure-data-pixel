@@ -1,6 +1,6 @@
 {
   "name": "treasure-data-pixel",
-  "vendor": "vtexus",
+  "vendor": "vtex",
   "version": "0.0.1",
   "title": "Treasure Data Integration",
   "description": "Integration of Treasure Data Analytics",
@@ -29,6 +29,40 @@
         "title": "API Key",
         "description": "API Key",
         "type": "string"
+      },
+      "database": {
+        "title": "Database",
+        "description": "Database",
+        "type": "string"
+      },
+      "table": {
+        "title": "Table",
+        "description": "Table",
+        "type": "string"
+      },
+      "fieldPrefix": {
+        "title": "Field Prefix",
+        "description": "Optional Field Prefix",
+        "type": "string"
+      },
+      "customFields": {
+        "title": "Custom Fields",
+        "description": "Add custom fields with static values",
+        "type": "array",
+        "items": {
+          "default": [],
+          "type": "object",
+          "properties": {
+            "columnName": {
+              "title": "Column Name",
+              "type": "string"
+            },
+            "columnValue": {
+              "title": "Value",
+              "type": "string"
+            }
+          }
+        }
       }
     }
   },

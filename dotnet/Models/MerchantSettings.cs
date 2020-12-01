@@ -9,5 +9,7 @@ namespace TreasureData.Models
         public string ApiKey { get; set; }
         public string Database { get; set; }
         public string Table { get; set; }
+        public string FieldPrefix { get; set; }
+        public Dictionary<string, string> CustomFields { get; set; }
     }
 }

@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Vtex.Api.Context;
+using System.ComponentModel;
 
 namespace TreasureData.Services
 {
@@ -34,6 +35,66 @@ namespace TreasureData.Services
                                 throw new ArgumentNullException(nameof(context));
         }
 
+        //public async Task<bool> ProcessNotification(AllStatesNotification allStatesNotification)
+        //{
+        //    bool success = true;
+        //    // Use our server - side Track API for the following:
+        //    // Placed Order - When an order successfully processes on your system
+        //    // Ordered Product - An event for each item in a processed order
+        //    // Fulfilled Order - When an order is sent to the customer
+        //    // Cancelled Order - When a customer cancels their order
+        //    // Refunded Order - When a customer’s order is refunded
+        //    string orderId = allStatesNotification.OrderId;
+        //    TreasureDataEvent treasureDataEvent;
+        //    VtexOrder vtexOrder = await _orderFeedAPI.GetOrderInformation(orderId);
+        //    switch (allStatesNotification.Domain)
+        //    {
+        //        case Constants.Domain.Fulfillment:
+        //            switch (allStatesNotification.CurrentState)
+        //            {
+        //                case Constants.Status.ReadyForHandling:
+        //                    treasureDataEvent = await BuildEvent(vtexOrder, Constants.Events.PlacedOrder);
+        //                    if (treasureDataEvent != null)
+        //                    {
+        //                        success = await SendEvent(treasureDataEvent);
+        //                        // Send each item as a separate event
+        //                        foreach (Item item in vtexOrder.Items)
+        //                        {
+        //                            VtexOrder order = vtexOrder;
+        //                            order.Items = new List<Item> { item };
+        //                            treasureDataEvent = await BuildEvent(vtexOrder, Constants.Events.OrderedProduct);
+        //                            success = success && await SendEvent(treasureDataEvent);
+        //                        }
+        //                    }
+
+        //                    break;
+        //                case Constants.Status.Invoiced:
+        //                    treasureDataEvent = await BuildEvent(vtexOrder, Constants.Events.FulfilledOrder);
+        //                    if (treasureDataEvent != null)
+        //                    {
+        //                        success = await SendEvent(treasureDataEvent);
+        //                    }
+
+        //                    break;
+        //                //case Constants.Status.Canceled:
+        //                //    break;
+        //                default:
+        //                    Console.WriteLine($"State {allStatesNotification.CurrentState} not implemeted.");
+        //                    _context.Vtex.Logger.Info("ProcessNotification", null, $"State {allStatesNotification.CurrentState} not implemeted.");
+        //                    break;
+        //            }
+        //            break;
+        //        case Constants.Domain.Marketplace:
+        //            break;
+        //        default:
+        //            Console.WriteLine($"Domain {allStatesNotification.Domain} not implemeted.");
+        //            _context.Vtex.Logger.Info("ProcessNotification", null, $"Domain {allStatesNotification.Domain} not implemeted.");
+        //            break;
+        //    }
+
+        //    return success;
+        //}
+
         public async Task<bool> ProcessNotification(AllStatesNotification allStatesNotification)
         {
             bool success = true;
@@ -44,7 +105,6 @@ namespace TreasureData.Services
             // Cancelled Order - When a customer cancels their order
             // Refunded Order - When a customer’s order is refunded
             string orderId = allStatesNotification.OrderId;
-            TreasureDataEvent treasureDataEvent;
             VtexOrder vtexOrder = await _orderFeedAPI.GetOrderInformation(orderId);
             switch (allStatesNotification.Domain)
             {
@@ -52,31 +112,14 @@ namespace TreasureData.Services
                     switch (allStatesNotification.CurrentState)
                     {
                         case Constants.Status.ReadyForHandling:
-                            treasureDataEvent = await BuildEvent(vtexOrder, Constants.Events.PlacedOrder);
-                            if (treasureDataEvent != null)
-                            {
-                                success = await SendEvent(treasureDataEvent);
-                                // Send each item as a separate event
-                                foreach (Item item in vtexOrder.Items)
-                                {
-                                    VtexOrder order = vtexOrder;
-                                    order.Items = new List<Item> { item };
-                                    treasureDataEvent = await BuildEvent(vtexOrder, Constants.Events.OrderedProduct);
-                                    success = success && await SendEvent(treasureDataEvent);
-                                }
-                            }
-
+                            success = await this.BuildAndSendEvent(vtexOrder, Constants.Events.PlacedOrder);
                             break;
                         case Constants.Status.Invoiced:
-                            treasureDataEvent = await BuildEvent(vtexOrder, Constants.Events.FulfilledOrder);
-                            if (treasureDataEvent != null)
-                            {
-                                success = await SendEvent(treasureDataEvent);
-                            }
-
+                            success = await this.BuildAndSendEvent(vtexOrder, Constants.Events.FulfilledOrder);
                             break;
-                        //case Constants.Status.Canceled:
-                        //    break;
+                        case Constants.Status.Canceled:
+                            success = await this.BuildAndSendEvent(vtexOrder, Constants.Events.CanceledOrder);
+                            break;
                         default:
                             Console.WriteLine($"State {allStatesNotification.CurrentState} not implemeted.");
                             _context.Vtex.Logger.Info("ProcessNotification", null, $"State {allStatesNotification.CurrentState} not implemeted.");
@@ -99,10 +142,10 @@ namespace TreasureData.Services
         /// </summary>
         /// <param name="treasureDataEvent"></param>
         /// <returns></returns>
-        public async Task<bool> SendEvent(TreasureDataEvent treasureDataEvent)
+        public async Task<bool> SendEvent(object treasureDataEventRecord)
         {
             bool success = false;
-            string jsonSerializedEvent = JsonConvert.SerializeObject(treasureDataEvent);
+            string jsonSerializedEvent = JsonConvert.SerializeObject(treasureDataEventRecord);
             Console.WriteLine($"Event = {jsonSerializedEvent}");
             MerchantSettings merchantSettings = await _orderFeedAPI.GetMerchantSettings();
 
@@ -113,6 +156,8 @@ namespace TreasureData.Services
                 Content = new StringContent(jsonSerializedEvent, Encoding.UTF8, Constants.APPLICATION_JSON)
             };
 
+            // td_write_key
+            request.Headers.Add(Constants.TD_KEY_HEADER, merchantSettings.ApiKey);
             request.Headers.Add(Constants.HTTP_FORWARDED_HEADER, this._httpContextAccessor.HttpContext.Request.Headers[Constants.FORWARDED_HEADER].ToString());
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[Constants.HEADER_VTEX_CREDENTIAL];
             if (authToken != null)
@@ -132,13 +177,14 @@ namespace TreasureData.Services
             return success;
         }
 
-        public async Task<TreasureDataEvent> BuildEvent(VtexOrder vtexOrder, string eventType)
+        public async Task<bool> BuildAndSendEvent(VtexOrder vtexOrder, string eventType)
         {
-            TreasureDataEvent treasureDataEvent = null;
+            bool sent = false;
             if (vtexOrder != null)
             {
                 MerchantSettings merchantSettings = await _orderFeedAPI.GetMerchantSettings();
-                treasureDataEvent = new TreasureDataEvent
+
+                TreasureDataHeader treasureDataHeader = new TreasureDataHeader
                 {
                     // td_format=pixel
                     // &td_write_key=XXXYYYZZZZ
@@ -146,10 +192,14 @@ namespace TreasureData.Services
                     // &td_ip=td_ip
                     // &td_ua=td_ua
                     Format = "pixel",
-                    WriteKey = merchantSettings.ApiKey,
                     GlobalId = "td_global_id",
                     IpAddress = "td_ip",
-                    UserAgent = "ua",
+                    UserAgent = "ua"
+                };
+
+                TreasureDataEvent treasureDataEvent = new TreasureDataEvent
+                {
+                    OrderId = vtexOrder.OrderId,
                     Address1 = vtexOrder.ShippingData.Address.Street,
                     Address2 = vtexOrder.ShippingData.Address.Complement,
                     City = vtexOrder.ShippingData.Address.City,
@@ -161,10 +211,32 @@ namespace TreasureData.Services
                     PhoneNumber = vtexOrder.ClientProfileData.Phone,
                     Region = vtexOrder.ShippingData.Address.Neighborhood,
                     Value = vtexOrder.Value,
-                    Zip = vtexOrder.ShippingData.Address.PostalCode
+                    Zip = vtexOrder.ShippingData.Address.PostalCode,
                 };
 
-                _context.Vtex.Logger.Info("BuildEvent", null, JsonConvert.SerializeObject(treasureDataEvent));
+                Dictionary<string, string> tdRecordBase = new Dictionary<string, string>();
+                Dictionary<string, string> tdHeader = ToDictionary(treasureDataHeader);
+                Dictionary<string, string> tdEvent = AddPrefix(ToDictionary(treasureDataEvent), merchantSettings.FieldPrefix);
+                
+                tdRecordBase = AddToDictionary(tdRecordBase, tdHeader);
+                tdRecordBase = AddToDictionary(tdRecordBase, tdEvent);
+                tdRecordBase = AddToDictionary(tdRecordBase, merchantSettings.CustomFields);
+
+                foreach (Item item in vtexOrder.Items)
+                {
+                    TreasureDataItem treasureDataItem = new TreasureDataItem
+                    {
+                        ItemProductname = item.Name,
+                        ItemQuantity = item.Quantity,
+                        ItemSku = item.SellerSku,
+                        TtemProductid = item.ProductId
+                    };
+
+                    Dictionary<string, string> tdItem = ToDictionary(treasureDataItem);
+                    Dictionary<string, string> treasureDataEventRecord = AddToDictionary(tdRecordBase, tdItem);
+
+                    sent &= await this.SendEvent(treasureDataEventRecord);
+                }
             }
             else
             {
@@ -172,7 +244,7 @@ namespace TreasureData.Services
                 _context.Vtex.Logger.Info("BuildEvent", null, $"Could not load order {vtexOrder.OrderId}");
             }
 
-            return treasureDataEvent;
+            return sent;
         }
 
         public string EncodeTo64(string toEncode)
@@ -186,6 +258,39 @@ namespace TreasureData.Services
         public decimal ToDollar(int asPennies)
         {
             return (decimal)asPennies / 100;
+        }
+
+        public static Dictionary<string, string> ToDictionary(object obj)
+        {
+            var json = JsonConvert.SerializeObject(obj);
+            var dictionary = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+            return dictionary;
+        }
+
+        public static Dictionary<string, string> AddPrefix(Dictionary<string, string> obj, string prefix)
+        {
+            if(!string.IsNullOrEmpty(prefix))
+            {
+                Dictionary<string, string> newObj = new Dictionary<string, string>();
+                foreach (var kvp in obj)
+                {
+                    newObj.Add($"{prefix}{kvp.Key}", kvp.Value);
+                }
+
+                obj = newObj;
+            }
+            
+            return obj;
+        }
+
+        public static Dictionary<string, string> AddToDictionary(Dictionary<string, string> addTo, Dictionary<string, string> addFrom)
+        {
+            foreach (var kvp in addFrom)
+            {
+                addTo.Add(kvp.Key, kvp.Value);
+            }
+
+            return addTo;
         }
     }
 }

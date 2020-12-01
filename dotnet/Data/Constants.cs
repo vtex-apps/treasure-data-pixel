@@ -10,11 +10,7 @@ namespace TreasureData.Data
         public const string AppKey = "X-VTEX-API-AppKey";
         public const string IsProduction = "X-Vtex-Workspace-Is-Production";
         public const string VtexIdCookie = "VtexIdclientAutCookie";
-
-        public const string EndPointKey = "hook-notification";
         public const string AppName = "treasure-data-notification";
-
-        public const string HookPing = "ping";
 
         public const string FORWARDED_HEADER = "X-Forwarded-For";
         public const string FORWARDED_HOST = "X-Forwarded-Host";
@@ -32,6 +28,7 @@ namespace TreasureData.Data
         public const string ACCEPT = "Accept";
         public const string CONTENT_TYPE = "Content-Type";
         public const string HTTP_FORWARDED_HEADER = "HTTP_X_FORWARDED_FOR";
+        public const string TD_KEY_HEADER = "td_write_key";
 
         public const string TreasureDataAPIEndpoint = "https://in.treasuredata.com";
         public const string TreasureDataPostback = "postback/v3/event";
@@ -70,6 +67,13 @@ namespace TreasureData.Data
             public const string PlacedOrder = "Placed Order";
             public const string FulfilledOrder = "Fulfilled Order";
             public const string OrderedProduct = "Ordered Product";
+            public const string CanceledOrder = "Canceled Order";
+        }
+
+        public class TableName
+        {
+            public const string Order = "order";
+            public const string OrderItems = "order";
         }
 
         public class Domain

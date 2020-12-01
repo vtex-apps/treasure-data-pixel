@@ -30,8 +30,8 @@ namespace service.Controllers
         {
             Console.WriteLine($"[Build Event]");
             VtexOrder vtexOrder = await _orderFeedAPI.GetOrderInformation(orderId);
-            TreasureDataEvent klaviyoEvent = await _treasureDataAPI.BuildEvent(vtexOrder, eventType);
-            return Json(klaviyoEvent);
+            TreasureDataEvent treasureDataEvent = await _treasureDataAPI.BuildEvent(vtexOrder, eventType);
+            return Json(treasureDataEvent);
         }
     }
 }
