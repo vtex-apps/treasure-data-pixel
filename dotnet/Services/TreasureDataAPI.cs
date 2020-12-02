@@ -153,12 +153,12 @@ namespace TreasureData.Services
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri($"{Constants.TreasureDataAPIEndpoint}/{Constants.TreasureDataPostback}/{merchantSettings.Database}/{merchantSettings.Table}"),
+                RequestUri = new Uri($"{Constants.TreasureDataAPIEndpoint}/{Constants.TreasureDataPostback}/{merchantSettings.Database}/{merchantSettings.Table}?{Constants.TD_KEY_HEADER}={merchantSettings.ApiKey}"),
                 Content = new StringContent(jsonSerializedEvent, Encoding.UTF8, Constants.APPLICATION_JSON)
             };
 
             // td_write_key
-            request.Headers.Add(Constants.TD_KEY_HEADER, merchantSettings.ApiKey);
+            //request.Headers.Add(Constants.TD_KEY_HEADER, merchantSettings.ApiKey);
             request.Headers.Add(Constants.HTTP_FORWARDED_HEADER, this._httpContextAccessor.HttpContext.Request.Headers[Constants.FORWARDED_HEADER].ToString());
             string authToken = this._httpContextAccessor.HttpContext.Request.Headers[Constants.HEADER_VTEX_CREDENTIAL];
             if (authToken != null)
@@ -174,7 +174,7 @@ namespace TreasureData.Services
                 var response = await client.SendAsync(request);
                 string responseContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"[-] SendEvent Response {response.StatusCode} Content = '{responseContent}' |{request.RequestUri}| [-]");
-                _context.Vtex.Logger.Info("SendEvent", null, $"[{response.StatusCode}] {responseContent}");
+                _context.Vtex.Logger.Info("SendEvent", null, $"[{response.StatusCode}] '{responseContent}' {request.RequestUri}");
 
                 success = response.IsSuccessStatusCode;
             //}
