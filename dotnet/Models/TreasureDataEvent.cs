@@ -77,9 +77,6 @@ namespace TreasureData.Models
         [JsonProperty("zip")]
         public string Zip { get; set; }
 
-        [JsonProperty("region")]
-        public string Region { get; set; }
-
         [JsonProperty("country")]
         public string Country { get; set; }
 

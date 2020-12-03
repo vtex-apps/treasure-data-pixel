@@ -188,7 +188,7 @@ namespace TreasureData.Services
 
         public async Task<bool> BuildAndSendEvent(VtexOrder vtexOrder, string eventType)
         {
-            bool sent = false;
+            bool sent = true;
             if (vtexOrder != null)
             {
                 MerchantSettings merchantSettings = await _orderFeedAPI.GetMerchantSettings();
@@ -218,7 +218,6 @@ namespace TreasureData.Services
                     FirstName = vtexOrder.ClientProfileData.FirstName,
                     LastName = vtexOrder.ClientProfileData.LastName,
                     PhoneNumber = vtexOrder.ClientProfileData.Phone,
-                    Region = vtexOrder.ShippingData.Address.Neighborhood,
                     Value = ToDollar(vtexOrder.Value),
                     Zip = vtexOrder.ShippingData.Address.PostalCode,
                 };
@@ -229,9 +228,15 @@ namespace TreasureData.Services
                 
                 tdRecordBase = AddToDictionary(tdRecordBase, tdHeader);
                 tdRecordBase = AddToDictionary(tdRecordBase, tdEvent);
-                if (merchantSettings.CustomFields != null && merchantSettings.CustomFields.Count > 0)
+                if (merchantSettings.CustomFields != null)
                 {
-                    tdRecordBase = AddToDictionary(tdRecordBase, merchantSettings.CustomFields);
+                    Dictionary<string, string> customFields = new Dictionary<string, string>();
+                    foreach(CustomField setting in merchantSettings.CustomFields)
+                    {
+                        customFields.Add(setting.ColumnName, setting.ColumnValue);
+                    }
+
+                    tdRecordBase = AddToDictionary(tdRecordBase, customFields);
                 }
 
                 foreach (Item item in vtexOrder.Items)
@@ -297,20 +302,24 @@ namespace TreasureData.Services
 
         public static Dictionary<string, string> AddToDictionary(Dictionary<string, string> addTo, Dictionary<string, string> addFrom)
         {
-            if(addTo == null)
+            Dictionary<string, string> retDict = new Dictionary<string, string>();
+            if (addTo != null)
             {
-                addTo = new Dictionary<string, string>();
+                foreach (var kvp in addTo)
+                {
+                    retDict.Add(kvp.Key, kvp.Value);
+                }
             }
 
             if (addFrom != null)
             {
                 foreach (var kvp in addFrom)
                 {
-                    addTo.Add(kvp.Key, kvp.Value);
+                    retDict.Add(kvp.Key, kvp.Value);
                 }
             }
 
-            return addTo;
+            return retDict;
         }
     }
 }

@@ -109,6 +109,7 @@ namespace TreasureData.Services
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);
             string responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"==== GetMerchantSettings {responseContent} =====");
 
             return JsonConvert.DeserializeObject<MerchantSettings>(responseContent);
         }
