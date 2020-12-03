@@ -209,25 +209,31 @@ namespace TreasureData.Services
                 TreasureDataEvent treasureDataEvent = new TreasureDataEvent
                 {
                     OrderId = vtexOrder.OrderId,
+                    Country = vtexOrder.ShippingData.Address.Country,
+                    EventType = eventType,
+                    Value = ToDollar(vtexOrder.Value)
+                };
+
+                TreasureDataEventPrefix treasureDataEventPrefix = new TreasureDataEventPrefix
+                {
                     Address1 = vtexOrder.ShippingData.Address.Street,
                     Address2 = vtexOrder.ShippingData.Address.Complement,
                     City = vtexOrder.ShippingData.Address.City,
-                    Country = vtexOrder.ShippingData.Address.Country,
                     Email = vtexOrder.ClientProfileData.Email,
-                    EventType = eventType,
                     FirstName = vtexOrder.ClientProfileData.FirstName,
                     LastName = vtexOrder.ClientProfileData.LastName,
                     PhoneNumber = vtexOrder.ClientProfileData.Phone,
-                    Value = ToDollar(vtexOrder.Value),
-                    Zip = vtexOrder.ShippingData.Address.PostalCode,
+                    Zip = vtexOrder.ShippingData.Address.PostalCode
                 };
 
                 Dictionary<string, string> tdRecordBase = new Dictionary<string, string>();
                 Dictionary<string, string> tdHeader = ToDictionary(treasureDataHeader);
-                Dictionary<string, string> tdEvent = AddPrefix(ToDictionary(treasureDataEvent), merchantSettings.FieldPrefix);
+                Dictionary<string, string> tdEvent = ToDictionary(treasureDataEvent);
+                Dictionary<string, string> tdEventPrefix = AddPrefix(ToDictionary(treasureDataEventPrefix), merchantSettings.FieldPrefix);
                 
                 tdRecordBase = AddToDictionary(tdRecordBase, tdHeader);
                 tdRecordBase = AddToDictionary(tdRecordBase, tdEvent);
+                tdRecordBase = AddToDictionary(tdRecordBase, tdEventPrefix);
                 if (merchantSettings.CustomFields != null)
                 {
                     Dictionary<string, string> customFields = new Dictionary<string, string>();
