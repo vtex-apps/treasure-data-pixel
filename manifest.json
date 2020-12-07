@@ -1,7 +1,7 @@
 {
   "name": "treasure-data-pixel",
   "vendor": "vtex",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "title": "Treasure Data Integration",
   "description": "Integration of Treasure Data Analytics",
   "billingOptions": {

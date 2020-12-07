@@ -223,7 +223,8 @@ namespace TreasureData.Services
                     FirstName = vtexOrder.ClientProfileData.FirstName,
                     LastName = vtexOrder.ClientProfileData.LastName,
                     PhoneNumber = vtexOrder.ClientProfileData.Phone,
-                    Zip = vtexOrder.ShippingData.Address.PostalCode
+                    Zip = vtexOrder.ShippingData.Address.PostalCode,
+                    ConsentKey = null   // TODO: ready consent status from orderform
                 };
 
                 Dictionary<string, string> tdRecordBase = new Dictionary<string, string>();

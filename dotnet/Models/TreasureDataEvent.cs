@@ -81,6 +81,9 @@ namespace TreasureData.Models
 
         [JsonProperty("zip")]
         public string Zip { get; set; }
+
+        [JsonProperty("consent_key")]
+        public string ConsentKey { get; set; }
     }
 
     public class TreasureDataItem
